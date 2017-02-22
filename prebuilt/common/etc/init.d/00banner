@@ -1,0 +1,7 @@
+#!/system/bin/sh
+#
+# Print startup info
+#
+L="log -p i -t glaze"
+
+$L "Welcome to Android `getprop ro.build.version.release` / GlazeOS `getprop ro.glaze.version`";
