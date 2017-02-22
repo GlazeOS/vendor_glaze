@@ -4,4 +4,9 @@
 #
 L="log -p i -t glaze"
 
+$L "  ____ _                ___  ____"
+$L " / ___| | __ _ _______ / _ \/ ___|"
+$L "| |  _| |/ _` |_  / _ \ | | \___ \"
+$L "| |_| | | (_| |/ /  __/ |_| |___) |"
+$L " \____|_|\__,_/___\___|\___/|____/"
 $L "Welcome to Android `getprop ro.build.version.release` / GlazeOS `getprop ro.glaze.version`";
