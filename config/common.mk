@@ -115,6 +115,13 @@ PRODUCT_PACKAGES += \
     LatinIME \
     BluetoothExt
 
+PRODUCT_PACKAGES += \
+    ThemeInterfacer
+
+# GlazeOS Statistics
+PRODUCT_COPY_FILES +=  \
+    vendor/glaze/prebuilt/common/app/GlazeStats/GlazeStats.apk:system/app/GlazeStats/GlazeStats.apk \
+
 ## Don't compile SystemUITests
 EXCLUDE_SYSTEMUI_TESTS := true
 
@@ -177,7 +184,7 @@ ifndef GLAZE_POSTFIX
     GLAZE_POSTFIX := -$(shell date +"%Y%m%d-%H%M")
 endif
 
-GLAZE_VERSION := GlazeOS-$(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR).$(PRODUCT_VERSION_MAINTENANCE)-$(GLAZE_BUILD_TYPE)$(GLAZE_POSTFIX)
+GLAZE_VERSION := GlazeOS-$(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR)-$(GLAZE_BUILD_TYPE)$(GLAZE_BUILD)
 
 PRODUCT_PROPERTY_OVERRIDES += \
     BUILD_DISPLAY_ID=$(BUILD_ID) \
