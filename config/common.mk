@@ -120,7 +120,11 @@ PRODUCT_PACKAGES += \
 
 # GlazeOS Statistics
 PRODUCT_COPY_FILES +=  \
-    vendor/glaze/prebuilt/common/app/GlazeStats/GlazeStats.apk:system/app/GlazeStats/GlazeStats.apk \
+    vendor/glaze/prebuilt/common/app/GlazeStats/GlazeStats.apk:system/app/GlazeStats/GlazeStats.apk
+
+# GlazeOS Settings
+PRODUCT_COPY_FILES +=  \
+    vendor/glaze/prebuilt/common/app/GlazeSettings/GlazeSettings.apk:system/app/GlazeSettings/GlazeSettings.apk
 
 ## Don't compile SystemUITests
 EXCLUDE_SYSTEMUI_TESTS := true
@@ -170,7 +174,7 @@ PRODUCT_PACKAGE_OVERLAYS += \
 
 # Versioning System
 # GlazeOS version.
-PRODUCT_VERSION_MAJOR = 1
+PRODUCT_VERSION_MAJOR = 2
 PRODUCT_VERSION_MINOR = 0
 PRODUCT_VERSION_MAINTENANCE = 0
 ifdef GLAZE_BUILD_EXTRA
