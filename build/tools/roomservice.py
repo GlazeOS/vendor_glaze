@@ -45,7 +45,7 @@ default_team_rem = "github"
 # this shouldn't change unless google makes changes
 local_manifest_dir = ".repo/local_manifests"
 # change this to your name on github (or equivalent hosting)
-android_team = "GlazeOS-Devices"
+android_team = "GlazeOS-devices"
 
 
 def check_repo_exists(git_data):
@@ -77,7 +77,16 @@ def get_device_url(git_data):
         temp_url = item.get('html_url')
         if "{}/device".format(android_team) in temp_url:
             try:
-                temp_url = temp_url[temp_url.index("device"):]
+                '''
+                Searching for temp_url.index("device") is fine if Github
+                repository itself does *not* contain "devices" as a substring
+                in it. Current device repository is "GlazeOS-devices" which confuses
+                the script. However, the logic below should work transparently in
+                future even if the repository is ever moved or renamed. temp_url is
+                expected to be of the form: (<> are placeholders)
+                https://github.com/GlazeOS-devices/device_<vendor>_<codename>
+                '''
+                temp_url = temp_url[temp_url.index(android_team) + len(android_team) + 1:]
             except ValueError:
                 pass
             else:
@@ -97,7 +106,35 @@ def parse_device_directory(device_url,device):
     repo_name = repo_name[:repo_name.index(device)]
     repo_dir = repo_name.replace("_", "/")
     repo_dir = repo_dir + device
-    return "device{}".format(repo_dir)
+    repo_dir = "device{}".format(repo_dir)
+    return repo_dir
+
+'''
+A manifest can include other manifests, too, using <include> tag.
+Given a manifest, this method recursively computes a transitive closure
+of all included manifests and returns a list at the end.
+In iterate_manifests() method, it is not sufficient just to include the
+top level manifests only, because "repo" is recursive by nature.
+e.g. main manifest.xml includes glaze.xml which has to be included while
+checking for duplicates.
+'''
+def recurse_manifests(manifest, manifest_dir, all_manifests=[]):
+    try:
+        manifest_path = os.path.join(manifest_dir, manifest)
+        all_manifests.append(manifest_path)
+        man = ES.parse(manifest_path)
+    except IOError, ES.ParseError:
+        print("WARNING: error while parsing %s" % manifest_path)
+    else:
+        includes = man.findall("include")
+        if includes:
+            for include in includes:
+                name = include.get("name")
+                inc_manifest_path = os.path.join(manifest_dir, name)
+                inc_manifest_dir = os.path.dirname(inc_manifest_path)
+                inc_manifest = os.path.basename(inc_manifest_path)
+                recurse_manifests(inc_manifest, inc_manifest_dir, all_manifests)
+        return all_manifests
 
 
 # Thank you RaYmAn
@@ -105,8 +142,24 @@ def iterate_manifests(check_all):
     files = []
     if check_all:
         for file in os.listdir(local_manifest_dir):
-            files.append(os.path.join(local_manifest_dir, file))
-    files.append('.repo/manifest.xml')
+            all_manifests = recurse_manifests(file, local_manifest_dir)
+            files.extend(all_manifests)
+    
+    # manifest.xml is a symlink to real manifest
+    main_manifest_path = '.repo/manifest.xml'
+    real_manifest_path = os.path.relpath(os.path.realpath(main_manifest_path))
+    main_manifest_dir = os.path.dirname(real_manifest_path)
+    main_manifest = os.path.basename(real_manifest_path)
+
+    '''
+    Better to use the empty list as the last argument. Without it, the list returned
+    contains repitative elements. It's because Python's default arguments are evaluated
+    once when the function is defined, not each time the function is called.
+    http://docs.python-guide.org/en/latest/writing/gotchas
+    '''
+    all_manifests = recurse_manifests(main_manifest, main_manifest_dir, [])
+    files.extend(all_manifests)
+    
     for file in files:
         try:
             man = ES.parse(file)
@@ -152,10 +205,15 @@ def indent(elem, level=0):
 
 def create_manifest_project(url, directory,
                             remote=default_rem,
-                            revision=default_rev):
+                            revision=default_rev,
+                            device_exists=True):
     project_exists = check_project_exists(url)
-
-    if project_exists:
+    '''
+    A user may have deleted the project from the file system, but not the manifest.
+    In that case project_exists is True but device_exists is False.
+    However, the manifest has to be rewriten and device has to be fetched.
+    '''
+    if project_exists and device_exists:
         return None
 
     dup_path = check_dup_path(directory)
@@ -221,7 +279,7 @@ def parse_device_from_folder(device):
     elif len(search) == 1:
         location = search[0]
     else:
-        print("you device can't be found in device sources..")
+        print("your device can't be found in device sources..")
         location = parse_device_from_manifest(device)
     return location
 
@@ -286,15 +344,18 @@ def fetch_device(device):
         print("WARNING: Trying to fetch a device that's already there")
         return
     git_data = search_github_for_device(device)
-    device_url = android_team+"/"+get_device_url(git_data)
+    device_url = get_device_url(git_data)
     device_dir = parse_device_directory(device_url,device)
+    device_url = android_team+"/"+get_device_url(git_data)
     project = create_manifest_project(device_url,
                                       device_dir,
-                                      remote=default_team_rem)
+                                      remote=default_team_rem,
+                                      device_exists=False)
     if not project is None:
         manifest = append_to_manifest(project)
         write_to_manifest(manifest)
         print("syncing the device config")
+        print("device_url",  device_dir)
         os.system('repo sync -f --force-sync --no-clone-bundle %s' % device_dir)
 
 
